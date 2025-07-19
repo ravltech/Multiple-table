@@ -1,0 +1,287 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Multiplication Game</title>
+  <style>
+    :root {
+      --bg: #f0f8ff;
+      --card: #ffffff;
+      --text: #222;
+      --primary: #4CAF50;
+      --wrong: #e74c3c;
+      --correct: #2ecc71;
+      --button-bg: #555;
+      --button-color: white;
+    }
+    body.dark {
+      --bg: #121212;
+      --card: #1e1e1e;
+      --text: #ffffff;
+      --primary: #81c784;
+      --button-bg: #cccccc;
+      --button-color: #000000;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    h1 { margin-bottom: 10px; }
+    .container {
+      max-width: 500px;
+      margin: 20px auto;
+      background: var(--card);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      transition: background 0.3s ease;
+    }
+    select, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 10px 5px;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      cursor: pointer;
+    }
+    .toggle-btn {
+      background: var(--button-bg);
+      color: var(--button-color);
+    }
+    .question {
+      font-size: 24px;
+      margin: 20px 0 10px;
+    }
+    .options button {
+      display: block;
+      margin: 8px auto;
+      width: 80%;
+      font-size: 18px;
+      background: #eee;
+      color: var(--text);
+      transition: transform 0.2s, background 0.3s;
+    }
+    .options button:hover {
+      transform: scale(1.05);
+    }
+    .feedback {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .correct { color: var(--correct); }
+    .wrong { color: var(--wrong); }
+    .status {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .timer {
+      font-size: 20px;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    body.dark .options button {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+    }
+    body.dark .options button:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <h1>Multiplication Game 🎮</h1>
+  <div class="controls">
+    <button onclick="toggleDarkMode()" class="toggle-btn">🌗 Dark Mode</button>
+    <button onclick="toggleMute()" class="toggle-btn" id="muteBtn">🔊 Sound</button>
+  </div>
+  <div class="container">
+    <h2>📚 Practice Tables</h2>
+    <label>Select Tables (2–30):</label>
+    <select id="practiceSelect" onchange="showPracticeTable()">
+      <option value="">--Select--</option>
+    </select>
+    <div id="practiceOutput"></div>
+  </div>
+  <div class="container">
+    <h2>🎯 Quiz Mode</h2>
+    <label>Choose a Table:</label>
+    <select id="quizSelect">
+      <option value="">--Select--</option>
+    </select>
+    <button onclick="startQuiz()">Start Quiz</button>
+    <div class="question" id="quizQuestion"></div>
+    <div class="options" id="quizOptions"></div>
+    <div class="timer" id="timerDisplay"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="status">
+      <div>❤️ Lives: <span id="lives">3</span></div>
+      <div>⭐ Score: <span id="score">0</span></div>
+      <div>🏆 High Score: <span id="highScore">0</span></div>
+    </div>
+  </div>
+  <audio id="correctSound" src="https://www.soundjay.com/buttons/sounds/button-3.mp3"></audio>
+  <audio id="wrongSound" src="https://www.soundjay.com/buttons/sounds/button-10.mp3"></audio>
+  <script>
+    const practiceSelect = document.getElementById('practiceSelect');
+    const quizSelect = document.getElementById('quizSelect');
+    const practiceOutput = document.getElementById('practiceOutput');
+    const quizQuestion = document.getElementById('quizQuestion');
+    const quizOptions = document.getElementById('quizOptions');
+    const feedback = document.getElementById('feedback');
+    const scoreDisplay = document.getElementById('score');
+    const livesDisplay = document.getElementById('lives');
+    const highScoreDisplay = document.getElementById('highScore');
+    const correctSound = document.getElementById('correctSound');
+    const wrongSound = document.getElementById('wrongSound');
+    const muteBtn = document.getElementById('muteBtn');
+    const timerDisplay = document.getElementById('timerDisplay');let quizNumber = 0;
+let multiplier = 0;
+let correctAnswer = 0;
+let score = 0;
+let lives = 3;
+let muted = false;
+let timeLeft = 15;
+let timer;
+let highScore = parseInt(localStorage.getItem('highScore')) || 0;
+highScoreDisplay.textContent = highScore;
+
+for (let i = 2; i <= 30; i++) {
+  let opt = `<option value="${i}">${i}</option>`;
+  practiceSelect.innerHTML += opt;
+  quizSelect.innerHTML += opt;
+}
+
+function showPracticeTable() {
+  const num = parseInt(practiceSelect.value);
+  practiceOutput.innerHTML = '';
+  if (!isNaN(num)) {
+    let html = '<ul>';
+    for (let i = 1; i <= 12; i++) {
+      html += `<li>${num} × ${i} = ${num * i}</li>`;
+    }
+    html += '</ul>';
+    practiceOutput.innerHTML = html;
+  }
+}
+
+function toggleDarkMode() {
+  document.body.classList.toggle('dark');
+}
+
+function toggleMute() {
+  muted = !muted;
+  muteBtn.textContent = muted ? '🔇 Muted' : '🔊 Sound';
+}
+
+function startQuiz() {
+  quizNumber = parseInt(quizSelect.value);
+  if (isNaN(quizNumber)) {
+    alert("Please select a table.");
+    return;
+  }
+  score = 0;
+  lives = 3;
+  updateStatus();
+  nextQuestion();
+}
+
+function nextQuestion() {
+  clearInterval(timer);
+  if (lives <= 0) {
+    feedback.innerHTML = `<span class="wrong">Game Over!</span>`;
+    quizQuestion.textContent = '';
+    quizOptions.innerHTML = '';
+    timerDisplay.textContent = '';
+    return;
+  }
+  multiplier = Math.floor(Math.random() * 12) + 1;
+  correctAnswer = quizNumber * multiplier;
+  quizQuestion.textContent = `What is ${quizNumber} × ${multiplier}?`;
+  feedback.textContent = '';
+  generateOptions(correctAnswer);
+  startTimer();
+}
+
+function startTimer() {
+  timeLeft = 15;
+  timerDisplay.textContent = `⏳ Time Left: ${timeLeft}s`;
+  timer = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = `⏳ Time Left: ${timeLeft}s`;
+    if (timeLeft <= 0) {
+      clearInterval(timer);
+      handleTimeout();
+    }
+  }, 1000);
+}
+
+function handleTimeout() {
+  lives--;
+  updateStatus();
+  feedback.innerHTML = `<span class="wrong">⏱ Time's up! Answer was ${correctAnswer}</span>`;
+  if (!muted) wrongSound.play();
+  setTimeout(nextQuestion, 1500);
+}
+
+function generateOptions(correct) {
+  let options = new Set([correct]);
+  while (options.size < 4) {
+    let wrong = correct + Math.floor(Math.random() * 10) - 5;
+    if (wrong !== correct && wrong > 0) options.add(wrong);
+  }
+  quizOptions.innerHTML = '';
+  Array.from(options).sort(() => Math.random() - 0.5).forEach(val => {
+    let btn = document.createElement('button');
+    btn.textContent = val;
+    btn.onclick = () => checkAnswer(val);
+    quizOptions.appendChild(btn);
+  });
+}
+
+function checkAnswer(selected) {
+  clearInterval(timer);
+  if (selected === correctAnswer) {
+    feedback.innerHTML = `<span class="correct">✅ Correct!</span>`;
+    score++;
+    if (!muted) correctSound.play();
+  } else {
+    feedback.innerHTML = `<span class="wrong">❌ Wrong! Answer: ${correctAnswer}</span>`;
+    lives--;
+    if (!muted) wrongSound.play();
+  }
+  updateStatus();
+  setTimeout(nextQuestion, 1000);
+}
+
+function updateStatus() {
+  scoreDisplay.textContent = score;
+  livesDisplay.textContent = lives;
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('highScore', score);
+    highScoreDisplay.textContent = highScore;
+  }
+}
+
+  </script>
+</body>
+</html>
